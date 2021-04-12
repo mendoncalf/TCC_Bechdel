@@ -11,19 +11,15 @@ A base de dados que vamos utilizar contém diversos filmes laçados ao longo dos
 
 Nesse relatório vamos focar nas características econômicas dos filmes e como as mesmas impactam (ou não) no desempenho no teste de Bechdel. As características escolhidas foram:
 
-**binary** : resultado do teste de Bechdel (Sucesso/Fracasso) <br/> 
-**budget_2013**: orçamento corrigido para valores de 2013 <br/> 
-**domgross_2013**: arrecadação doméstica corrigida para valores de 2013 <br/> 
-**intgross_2013**: arrecadação internacional corrigida para valores de 2013 <br/> 
-**lucro (intgross_2013 - budget_2013)**: arrecadação internacional - orçamento (pode não refletir o lucro real caso filme tenha untrapasado o orçamento) <br/> 
+**binary** : resultado do teste de Bechdel (Sucesso/Fracasso) <br/> **budget_2013**: orçamento corrigido para valores de 2013 <br/> **domgross_2013**: arrecadação doméstica corrigida para valores de 2013 <br/> **intgross_2013**: arrecadação internacional corrigida para valores de 2013 <br/> **lucro (intgross_2013 - budget_2013)**: arrecadação internacional - orçamento (pode não refletir o lucro real caso filme tenha untrapasado o orçamento) <br/>
 
 ### Análise Quantitativa
 
-Ignorando alguns pressupostos, foi feita uma análise de variância para verificar se os níveis de **binary** tem em média valores significativamente distintos para as variáveis em questão. 
+Ignorando alguns pressupostos, foi feita uma análise de variância para verificar se os níveis de **binary** tem em média valores significativamente distintos para as variáveis em questão.
 
-Modelo: `lm(y ~ binary)`, no qual **y** são as variáveis econômicas.	
+Modelo: `lm(y ~ binary)`, no qual **y** são as variáveis econômicas.
 
-A Tabela abaixo mostra um p-valor significativo para todas as variáveis, mostrando que os índices econômicos tem médias estatísticamente diferentes dentro das duas categorias de **binary**
+A Tabela abaixo mostra um ***p-valor*** **significativo** para todas as variáveis, mostrando que os índices econômicos tem médias estatísticamente diferentes dentro das duas categorias de **binary**
 
 ```{r, echo = FALSE, warning=FALSE, message=FALSE}
 library(tidyverse)
@@ -310,8 +306,7 @@ library(patchwork)
 ```
 
 ### Concluções
-Apesar de uma relação de causa-efeito não ser evidente, filmes com **maiores orçamentos e arrecadações falham mais** no teste de Bechdel, mesmo assim, não há uma discrepância tão grande entre as duas categorias a ponto de afirmar que fatores econômicos são determimantes para o resultado do teste. 
 
-É bom resaltar que o **percentual de sucesso no teste tem aumentado** ao longo dos anos, apesar de ainda estar em um percentual longe do ideal, atingindo **pouco mais 50% apenas**. 
+Apesar de uma relação de causa-efeito não ser evidente, filmes com **maiores orçamentos e arrecadações falham mais** no teste de Bechdel, mesmo assim, não há uma discrepância tão grande entre as duas categorias a ponto de afirmar que fatores econômicos são determimantes para o resultado do teste.
 
-
+É bom resaltar que o **percentual de sucesso no teste tem aumentado** ao longo dos anos, apesar de ainda estar em um percentual longe do ideal, atingindo **pouco mais 50% apenas**.
