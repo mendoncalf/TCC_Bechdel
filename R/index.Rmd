@@ -7,6 +7,8 @@ output: html_document
 
 ## tidytuesday - Bechdel Test
 
+### Introdução 
+
 A base de dados que vamos utilizar contém diversos filmes laçados ao longo dos ultimos 50 anos, incluindo uma série de características dos mesmo e o seu resultado no teste de Bechdel, que visa verificar se existe desigualdade de gênero em determinado filme.
 
 Nesse relatório vamos focar nas características econômicas dos filmes e como as mesmas impactam (ou não) no desempenho no teste de Bechdel. As características escolhidas foram:

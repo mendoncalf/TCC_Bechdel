@@ -174,9 +174,12 @@ pre code {
 
 <div id="tidytuesday---bechdel-test" class="section level2">
 <h2>tidytuesday - Bechdel Test</h2>
+<div id="introdução" class="section level3">
+<h3>Introdução</h3>
 <p>A base de dados que vamos utilizar contém diversos filmes laçados ao longo dos ultimos 50 anos, incluindo uma série de características dos mesmo e o seu resultado no teste de Bechdel, que visa verificar se existe desigualdade de gênero em determinado filme.</p>
 <p>Nesse relatório vamos focar nas características econômicas dos filmes e como as mesmas impactam (ou não) no desempenho no teste de Bechdel. As características escolhidas foram:</p>
 <p><strong>binary</strong> : resultado do teste de Bechdel (Sucesso/Fracasso) <br /> <strong>budget_2013</strong>: orçamento corrigido para valores de 2013 <br /> <strong>domgross_2013</strong>: arrecadação doméstica corrigida para valores de 2013 <br /> <strong>intgross_2013</strong>: arrecadação internacional corrigida para valores de 2013 <br /> <strong>lucro (intgross_2013 - budget_2013)</strong>: arrecadação internacional - orçamento (pode não refletir o lucro real caso filme tenha untrapasado o orçamento) <br /></p>
+</div>
 <div id="análise-quantitativa" class="section level3">
 <h3>Análise Quantitativa</h3>
 <p>Ignorando alguns pressupostos, foi feita uma análise de variância para verificar se os níveis de <strong>binary</strong> tem em média valores significativamente distintos para as variáveis em questão.</p>
