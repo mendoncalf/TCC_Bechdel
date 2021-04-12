@@ -1,0 +1,317 @@
+---
+title: "Curso Visualização - TCC"
+author: "Leandro de Freitas Mendonça"
+date: "12/04/2021"
+output: html_document
+---
+
+## tidytuesday - Bechdel Test
+
+A base de dados que vamos utilizar contém diversos filmes laçados ao longo dos ultimos 50 anos, incluindo uma série de características dos mesmo e o seu resultado no teste de Bechdel, que visa verificar se existe desigualdade de gênero em determinado filme.
+
+Nesse relatório vamos focar nas características econômicas dos filmes e como as mesmas impactam (ou não) no desempenho no teste de Bechdel. As características escolhidas foram:
+
+**binary** : resultado do teste de Bechdel (Sucesso/Fracasso) <br/> 
+**budget_2013**: orçamento corrigido para valores de 2013 <br/> 
+**domgross_2013**: arrecadação doméstica corrigida para valores de 2013 <br/> 
+**intgross_2013**: arrecadação internacional corrigida para valores de 2013 <br/> 
+**lucro (intgross_2013 - budget_2013)**: arrecadação internacional - orçamento (pode não refletir o lucro real caso filme tenha untrapasado o orçamento) <br/> 
+
+### Análise Quantitativa
+
+Ignorando alguns pressupostos, foi feita uma análise de variância para verificar se os níveis de **binary** tem em média valores significativamente distintos para as variáveis em questão. 
+
+Modelo: `lm(y ~ binary)`, no qual **y** são as variáveis econômicas.	
+
+A Tabela abaixo mostra um p-valor significativo para todas as variáveis, mostrando que os índices econômicos tem médias estatísticamente diferentes dentro das duas categorias de **binary**
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+movies <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-03-09/movies.csv')
+
+movies_num = movies%>%
+                  select(title, binary, budget_2013, domgross_2013,intgross_2013) %>%
+                   mutate(domgross_2013 = as.numeric(domgross_2013),
+                         intgross_2013 = as.numeric(intgross_2013),
+                         lucro = intgross_2013 -budget_2013) %>%
+                  filter(across(
+                    .cols = everything(),
+                    .fns = ~!is.na(.x)
+                  ))
+
+library(broom)
+lm_l = anova(lm(lucro ~ binary, data = movies_num))
+lm_l = tidy(lm_l) %>%
+          slice(1) %>%
+          mutate('Variable' = 'lucro') %>%
+          relocate(Variable) %>%
+          select(-term)
+
+
+lm_d = anova(lm(domgross_2013 ~ binary, data = movies_num))
+lm_d = tidy(lm_d) %>%
+          slice(1) %>%
+          mutate('Variable' = 'domgross_2013') %>%
+          relocate(Variable) %>%
+          select(-term)
+
+lm_i = anova(lm(intgross_2013 ~ binary, data = movies_num))
+lm_i = tidy(lm_i) %>%
+          slice(1) %>%
+          mutate('Variable' = 'intgross_2013') %>%
+          relocate(Variable) %>%
+          select(-term)
+
+lm_b = anova(lm(budget_2013 ~ binary, data = movies_num))
+lm_b = tidy(lm_b) %>%
+        slice(1) %>%
+        mutate('Variable' = 'budget_2013') %>%
+        relocate(Variable) %>%
+        select(-term)
+
+rbind(lm_d,lm_i,lm_b,lm_l) %>% knitr::kable()
+
+```
+
+A tabela com a média de valores confirma isso, demostrando que filmes com **mariores orçamentos e receitas tenderam a falhar mais** no teste de Bechdel.
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE}
+movies_num %>%
+  group_by(binary) %>%
+  summarise(across(
+    .cols = where(is.numeric),
+    .fns = list(mean = mean), na.rm = T
+  )) %>%
+  knitr::kable()
+
+```
+
+### Explorações visuaios
+
+### *Categorização*
+
+Categorizando as variávies numéricas podemos explorar melhor seu comportamento em relação ao resultado do teste. Sendo assim, pode-se ver que a proporção de valores considerados altos e médios representam uma maior fatia no grupo de filmes que fracassaram no teste. Em média **55% dos filmes que fracasaram** tiveram índices altos ou médios. Esse mesmo percentual cai para **45% entre os filmes que passaram** no teste.
+
+A Maior discrepância está em **orçamento**, no qual 30% dos filmes que fracassaram no teste tem orçamentos altos, contra apenas 19% nos que passaram no teste.
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE, fig.align='center'}
+
+#Plot 1
+#summary(movies_num$lucro)
+p1 = movies_num %>%
+  mutate(lucro_cat = case_when(
+    lucro < 6013346 ~ 'muito baixo',
+    lucro >= 6013346 & lucro < 55147752 ~ 'baixo',
+    lucro >= 55147752 & lucro < 165041241 ~ 'medio' ,
+    lucro >= 165041241 ~ 'alto'
+  )) %>%
+  group_by(binary, lucro_cat) %>%
+  summarise(n = n()) %>%
+  mutate(perc_f = n/sum(n[binary=='FAIL']), perc_p = n/sum(n[binary=='PASS'])) %>%
+  mutate(across(
+    .cols = starts_with('perc'),
+    .fns = ~na_if(.x, Inf)
+  )) %>%
+  rowwise() %>%
+  mutate(perc = round(sum(perc_f,perc_p, na.rm = T),2)) %>%
+  select(binary,lucro_cat, n, perc) %>%
+  mutate(lucro_cat = factor(lucro_cat,
+                            levels = c('alto', 'medio', 'baixo', 'muito baixo'), ordered = T)) %>%
+  ggplot()+
+    aes(x = binary, y = n, fill = lucro_cat)+
+    geom_col()+
+  geom_text(aes(label = perc), position = position_stack(vjust = 0.5),
+            color = 'white', size = 4.5)+
+    labs(title = 'Lucro',
+         y = 'n', x = 'Bechdel')+
+  theme_minimal()+
+  theme(legend.title = element_blank())
+
+# Plot2
+#summary(movies_num$domgross_2013)
+
+p2 = movies_num %>%
+  mutate(domgross_2013_cat = case_when(
+    domgross_2013 < 20550000 ~ 'muito baixo',
+    domgross_2013 >= 20550000 & domgross_2013 < 55990000 ~ 'baixo',
+    domgross_2013 >= 55990000 & domgross_2013 < 121700000 ~ 'medio' ,
+    domgross_2013 >= 121700000 ~ 'alto'
+  )) %>%
+  group_by(binary, domgross_2013_cat) %>%
+  summarise(n = n()) %>%
+  mutate(perc_f = n/sum(n[binary=='FAIL']), perc_p = n/sum(n[binary=='PASS'])) %>%
+  mutate(across(
+    .cols = starts_with('perc'),
+    .fns = ~na_if(.x, Inf)
+  )) %>%
+  rowwise() %>%
+  mutate(perc = round(sum(perc_f,perc_p, na.rm = T),2)) %>%
+  select(binary,domgross_2013_cat, n, perc) %>%
+  mutate(domgross_2013_cat = factor(domgross_2013_cat,
+                            levels = c('alto', 'medio', 'baixo', 'muito baixo'), ordered = T)) %>%
+  ggplot()+
+  aes(x = binary, y = n, fill = domgross_2013_cat)+
+  geom_col()+
+  geom_text(aes(label = perc), position = position_stack(vjust = 0.5),
+            color = 'white', size = 4.5)+
+  labs(title = 'Arrecadação doméstica',
+       y = 'n', x = 'Bechdel')+
+  theme_minimal()+
+  theme(legend.title = element_blank())
+
+#Plot3
+#summary(movies_num$intgross_2013)
+
+p3 = movies_num %>%
+  mutate(intgross_2013_cat = case_when(
+    intgross_2013 < 33740000 ~ 'muito baixo',
+    intgross_2013 >= 33740000 & intgross_2013 < 96890000 ~ 'baixo',
+    intgross_2013 >= 96890000 & intgross_2013 < 242000000 ~ 'medio' ,
+    intgross_2013 >= 242000000 ~ 'alto'
+  )) %>%
+  group_by(binary, intgross_2013_cat) %>%
+  summarise(n = n()) %>%
+  mutate(perc_f = n/sum(n[binary=='FAIL']), perc_p = n/sum(n[binary=='PASS'])) %>%
+  mutate(across(
+    .cols = starts_with('perc'),
+    .fns = ~na_if(.x, Inf)
+  )) %>%
+  rowwise() %>%
+  mutate(perc = round(sum(perc_f,perc_p, na.rm = T),2)) %>%
+  select(binary,intgross_2013_cat, n, perc) %>%
+  mutate(intgross_2013_cat = factor(intgross_2013_cat,
+                                    levels = c('alto', 'medio', 'baixo', 'muito baixo'), ordered = T)) %>%
+  ggplot()+
+  aes(x = binary, y = n, fill = intgross_2013_cat)+
+  geom_col()+
+  geom_text(aes(label = perc), position = position_stack(vjust = 0.5),
+            color = 'white', size = 4.5)+
+  labs(title = 'Arrecadação internacional',
+       y = 'n', x = 'Bechdel')+
+  theme_minimal()+
+  theme(legend.title = element_blank())
+
+
+#Plot4
+#summary(movies_num$budget_2013)
+
+p4 = movies_num %>%
+  mutate(budget_2013_cat = case_when(
+    budget_2013 < 16234217 ~ 'muito baixo',
+    budget_2013 >= 16234217 & budget_2013 < 37157440 ~ 'baixo',
+    budget_2013 >= 37157440 & budget_2013 < 79081181 ~ 'medio' ,
+    budget_2013 >= 79081181 ~ 'alto'
+  )) %>%
+  group_by(binary, budget_2013_cat) %>%
+  summarise(n = n()) %>%
+  mutate(perc_f = n/sum(n[binary=='FAIL']), perc_p = n/sum(n[binary=='PASS'])) %>%
+  mutate(across(
+    .cols = starts_with('perc'),
+    .fns = ~na_if(.x, Inf)
+  )) %>%
+  rowwise() %>%
+  mutate(perc = round(sum(perc_f,perc_p, na.rm = T),2)) %>%
+  select(binary,budget_2013_cat, n, perc) %>%
+  mutate(budget_2013_cat = factor(budget_2013_cat,
+                                    levels = c('alto', 'medio', 'baixo', 'muito baixo'), ordered = T)) %>%
+  ggplot()+
+  aes(x = binary, y = n, fill = budget_2013_cat)+
+  geom_col()+
+  geom_text(aes(label = perc), position = position_stack(vjust = 0.5),
+            color = 'white', size = 4.5)+
+  labs(title = 'Orçamento',
+       y = 'n', x = 'Bechdel')+
+  theme_minimal()+
+  theme(legend.title = element_blank())
+
+library(patchwork)
+(p1 + p4)/(p2 + p3)
+
+```
+
+### *Análise ao longo do tempo*
+
+Considerando os anos com ao menos 10 filmes na base, o orçamento médio ao logo dos anos vem aumentando, no entanto o lucro corrigido médio tem tendência de queda. Isso aparentemente se deve ao fato dos filmes mais atuais assumirem mais riscos, aumentando despesas e se inserindo internacionalmente. Isso se confirma no gráfico seguinte, que mostra que o prejuzo médio dos filmes que faturaram abaixo do orçamento tem tendência de aumento.
+
+A boa noticia é que a **taxa de aprovação do teste vem aumentando** com o passar dos anos, reflexo das mudanças sociais e da maior importancia do fomento de igualdade no cimena.
+
+Por fim, os **percentuais de lucro/prejuizo são bem similares** dentro dos grupos de sucesso e fracasso no teste.
+
+```{r, echo = FALSE, warning=FALSE, message=FALSE, fig.align='center'}
+
+time_movies = movies %>%
+  mutate(intgross_2013 = as.numeric(intgross_2013)) %>%
+  mutate(lucro = intgross_2013 - budget) %>%
+  group_by(year) %>%
+  summarise(n = n(),
+            Bechdel = sum(binary == 'PASS'),
+            across(
+    .cols = c(budget, intgross_2013, lucro),
+    .fns = mean, na.rm = T),
+    ) %>%
+  mutate(perc_pass = Bechdel/n) %>%
+  mutate(perc_pass_plot = perc_pass*290684515) %>%
+  filter(n>9) %>%
+  arrange((year))
+
+colors <- c("Orçamento" = "red", "Lucro" = "blue", "Aprovação" = "green")
+
+p5 = time_movies %>%
+  ggplot()+
+    geom_smooth(aes(x =year, y = budget, color = 'Orçamento'), method = 'lm',se = T)+
+    geom_smooth(aes(x =year, y = lucro, color = 'Lucro'), method = 'lm',se = T, )+
+    geom_smooth(aes(x =year, y = perc_pass_plot, color = 'Aprovação'), method = 'lm',se = T)+
+    scale_y_continuous(sec.axis = sec_axis( trans= ~./290684515, name="% aprovação Bechdel"))+
+    labs(title = 'Tedência de índices econômicos e performance no teste de Bechdel',x = 'Ano', y = 'US$')+
+    scale_color_manual(values = colors)+
+    theme_minimal()+
+    theme(legend.position = 'bottom',
+      legend.title = element_blank(),
+          )
+
+p6 = movies %>%
+  mutate(intgross_2013 = as.numeric(intgross_2013)) %>%
+  mutate(lucro = intgross_2013 - budget) %>%
+  filter(lucro<0) %>%
+  group_by(year) %>%
+  summarise(neg = abs(mean(lucro))) %>%
+  ggplot()+
+  geom_smooth(aes(x = year, y = neg), method = 'lm')+
+  labs(y = 'US$', x = 'ano', title = 'Prejuízo médio',
+       subtitle = 'Filmes que fatutaram abaixo do orçamento')+
+  theme_minimal()
+
+
+p7 = movies %>%
+  mutate(intgross_2013 = as.numeric(intgross_2013)) %>%
+  mutate(lucro = intgross_2013 - budget) %>%
+  mutate(lucro_cat = case_when(
+    lucro < 0 ~ 'Prejuizo',
+    lucro >= 0 ~ 'Lucro')) %>%
+  select(binary, lucro_cat) %>%
+  group_by(binary) %>%
+  summarise(n = n(),
+         lucro = sum(lucro_cat == 'Lucro', na.rm = T)/n,
+         prejuizo = sum(lucro_cat == 'Prejuizo', na.rm = T)/n) %>%
+  pivot_longer(cols = c(lucro, prejuizo), names_to = 'type', values_to = 'value') %>%
+  ggplot()+
+  geom_col(aes(x = binary , y = value, fill = type))+
+  theme_minimal()+
+  labs(x = 'Bechdel test', y = '%', title = 'Percentual de lucro/prejuízo')+
+  theme(plot.title = element_text(hjust = 0.5),
+        legend.title = element_blank(), 
+        legend.position = 'bottom')
+
+p5
+
+library(patchwork)
+(p6 + p7)
+
+```
+
+### Concluções
+Apesar de uma relação de causa-efeito não ser evidente, filmes com **maiores orçamentos e arrecadações falham mais** no teste de Bechdel, mesmo assim, não há uma discrepância tão grande entre as duas categorias a ponto de afirmar que fatores econômicos são determimantes para o resultado do teste. 
+
+É bom resaltar que o **percentual de sucesso no teste tem aumentado** ao longo dos anos, apesar de ainda estar em um percentual longe do ideal, atingindo **pouco mais 50% apenas**. 
+
+

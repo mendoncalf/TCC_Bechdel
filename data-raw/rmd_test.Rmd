@@ -1,0 +1,60 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(tidyverse)
+
+movies <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2021/2021-03-09/movies.csv')
+
+glimpse(movies)
+
+
+movies %>% count(director)
+
+
+# Analise Tidytuesday - dataset Bechdel
+# A ideia é verificar se algumas caracteriticas dos filmes tem impacto no resultado do teste de Bechdel.
+# Decidimos focar em caractesticas mais global que já essas impactam o filme como um todo
+# As caracteristicas foram divididas em numéricas e categoricas
+
+# Numercicas  - 
+# Categoricas - 
+# Resposta = binary
+
+# Analise das variavies numericas
+
+glimpse(movies)
+
+movies_num = movies%>% 
+                  select(title, binary, budget_2013, domgross_2013,intgross_2013) %>% 
+                   mutate(domgross_2013 = as.numeric(domgross_2013), 
+                         intgross_2013 = as.numeric(intgross_2013),
+                         lucro = intgross_2013 -budget_2013) %>% 
+                  filter(across(
+                    .cols = everything(),
+                    .fns = ~!is.na(.x)
+                  ))
+
+anova(lm(lucro ~ binary, data = movies_num))
+anova(lm(domgross_2013 ~ binary, data = movies_num))
+anova(lm(intgross_2013 ~ binary, data = movies_num))
+anova(lm(budget_2013 ~ binary, data = movies_num))
+
+
+movies_num %>% 
+  group_by(binary) %>% 
+  summarise(across(
+    .cols = where(is.numeric), 
+    .fns = list(media = mean), na.rm = T
+  )) %>% 
+  knitr::kable()
+  
+```
